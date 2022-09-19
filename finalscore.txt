@@ -1,6 +1,0 @@
-	
-dbSNP rate_chr10	99.82
-Mean Coverage	35.7
-dbSNP TITV_chr10	2.1
-Name	DZM00000028.16382.WGS.report.html
-Result	Success
