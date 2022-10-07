@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
@@ -14,6 +15,15 @@ from matplotlib.backends.backend_pdf import PdfPages
 def Main(srcfile, srctable, Directory=os.path.dirname(os.path.abspath(__file__))):
     #Основной dataframe задается из таблицы
     dfall = tableread(srctable)
+
+    #Выполняется подгрузка файла в таблицу
+    if srcfile in dfall.index:
+      # Искомый файл есть в базе, вносить новый репорт в базу не нужно
+      pass
+    else:
+      # Искомый файл в базе отсутствует, для проверки необходимо внести его в базу
+      dfall = pd.concat([dfall, get_file_df('test_M.WGS.report.html')]).drop_duplicates()
+      dfall.to_csv('Maintable2.tsv', sep='\t')
 
     #Задаются датасеты для построения карт коррелляции
     corrm = dfall[dfall['Total SNP_chrX'] < 90000].corr().replace({np.NAN: 0})
@@ -37,7 +47,7 @@ def Main(srcfile, srctable, Directory=os.path.dirname(os.path.abspath(__file__))
     #Имя pdf файла с графиками
     filename = "multi.pdf"
     #Сохранение графиков в виде pdf файла
-    save_multi_image(filename)
+    save_multi_png(filename)
     plt.interactive(False)
     #Вызов функции проверки файла
     checkSF(dfall, srcfile, Directory)
@@ -51,6 +61,61 @@ def tableread(table):
     df = pd.read_csv(table, sep='\t')
     df.set_index('Unnamed: 0', inplace=True)
     return df
+def DFFormat(dfs):
+    """
+    Устанавливает индекс строк
+    :param dfs(pandas.DataFrame): фрейм из фреймов
+    :return: dfs(pandas.DataFrame): фрейм из фреймов
+    """
+    for df in dfs:
+        df.set_index('Metric', inplace=True)
+    return(dfs)
+def DFSplit(dfs):
+    """
+    Разделяет исходные данные из папки (фрейм из фреймов)
+    на отдельные фреймы
+    :param dfs(pandas.DataFrame): фрейм из фреймов
+    :return: dflst(list) список из разделенных фремов
+    """
+    dflst = []
+    for df in dfs:
+        cols = list(df)
+        for col in cols:
+            ndf = df[col]
+            dflst.append(ndf)
+    return dflst
+def aquire(file):
+    """
+    Читает html файл репорта и формирует фрейм
+    на основе таблиц
+    :param file(str): имя файла
+    :return(pandas.DataFrame): фрейм отдельного репорта
+    """
+    data = pd.read_html(file)
+    out = DFFormat(data)
+    return out
+def get_file_df(filename):
+  """
+  На выделяет данны метрик из файла отчета в 
+  pandas DataFrame
+  :param filename(str): имя файла
+  :return(pandas.DataFrame): фрейм отдельного репорта
+  """
+  lstdf = DFSplit(aquire('/'+filename))
+  df1 = lstdf[0].to_frame().T[['Clean read rate', 'Mean Coverage', 'Raw reads']]
+  df2 = lstdf[1].to_frame().T[['Total filtered', 'Cutted adapter']]
+  depdis10 = lstdf[3].to_frame().T.add_suffix('_chr10')
+  depdisX = lstdf[4].to_frame().T.add_suffix('_chrX')
+  depdisY = lstdf[5].to_frame().T.add_suffix('_chrY')
+  df7 = lstdf[6].to_frame().T
+  df8 = lstdf[7].to_frame().T.add_suffix('_chr10')
+  df9 = lstdf[8].to_frame().T.add_suffix('_chrX')
+  df10 = lstdf[9].to_frame().T.add_suffix('_chrY')
+  lstmdf = [df1, df2, depdis10, depdisX, depdisY, df7, df8, df9, df10]
+  for df in lstmdf:
+    df.index = [filename]
+  outdf = pd.concat(lstmdf, axis=1).replace({'\%': ''}, regex=True).astype(float).dropna(how='any')
+  return outdf
 def plot_QCres(df1, df2, df3, x):
     fig, axs = plt.subplots(1, 3)
     sns.boxplot(ax=axs[0], data=df1, fliersize=0, width=0.3)
@@ -121,6 +186,7 @@ def plot_Val(df, ax, value):
     col = df.columns
     sns.stripplot(data=df[mask][col], ax = ax,
                marker='x', s=15, linewidth=2, color='red', jitter=0)
+
 def save_multi_image(filename):
     pp = PdfPages(filename)
     fig_nums = plt.get_fignums()
@@ -128,6 +194,12 @@ def save_multi_image(filename):
     for fig in figs:
         fig.savefig(pp, format='pdf')
     pp.close()
+
+def save_multi_png(filename):
+    fig_nums = plt.get_fignums()
+    figs = [plt.figure(n) for n in fig_nums]
+    for i, fig in enumerate(figs):
+        fig.savefig("{0}_{1}.png".format(i, filename))
 def checkSF(maindf, checkstr, Directory):
     """
     Проверяет заданный репорт на вхождение
@@ -160,6 +232,9 @@ def checkSF(maindf, checkstr, Directory):
         q3 = ' within boxplot whiskers '
         out = "Success"
 
+
+    # print(data[['Mean Coverage']].iat[0, 0] + ' < 15 ')
+    # print(data[['dbSNP rate_chr10']].iat[0, 0] + ' в пределах "усов"')
     d = {'dbSNP rate_chr10':str(data[['dbSNP rate_chr10']].iat[0, 0])+q1, 'Mean Coverage':str(data[['Mean Coverage']].iat[0, 0])+q2,
          'dbSNP TITV_chr10':str(data[['dbSNP TITV_chr10']].iat[0, 0])+q3, 'Name':checkstr, 'Result':out}
     finalscore = pd.Series(data=d, name='Summary')
