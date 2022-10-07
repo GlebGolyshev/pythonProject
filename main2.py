@@ -101,7 +101,7 @@ def get_file_df(filename):
   :param filename(str): имя файла
   :return(pandas.DataFrame): фрейм отдельного репорта
   """
-  lstdf = DFSplit(aquire('/'+filename))
+  lstdf = DFSplit(aquire(filename))
   df1 = lstdf[0].to_frame().T[['Clean read rate', 'Mean Coverage', 'Raw reads']]
   df2 = lstdf[1].to_frame().T[['Total filtered', 'Cutted adapter']]
   depdis10 = lstdf[3].to_frame().T.add_suffix('_chr10')
