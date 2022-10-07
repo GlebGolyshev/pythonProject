@@ -45,7 +45,7 @@ def Main(srcfile, srctable, Directory=os.path.dirname(os.path.abspath(__file__))
     plot_CorrFM(corrf, corrm)
 
     #Имя pdf файла с графиками
-    filename = "multi.pdf"
+    filename = "multi"
     #Сохранение графиков в виде pdf файла
     save_multi_png(filename)
     plt.interactive(False)
