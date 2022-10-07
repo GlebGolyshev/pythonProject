@@ -218,11 +218,17 @@ def checkSF(maindf, checkstr, Directory):
     hival = Q3 + 1.5 * IQR
     if data[['dbSNP rate_chr10']].iat[0, 0] < 99:
         q1=' < 99 '
+        q2=' '
+        q3=' '
         out = "Fail"
     elif data[['Mean Coverage']].iat[0, 0] < 15:
+        q1=' '
         q2=' < 15 '
+        q3=' '
         out = "Fail"
     elif loval>data[['dbSNP TITV_chr10']].iat[0, 0]>hival:
+        q1=' '
+        q2=' '
         q3=' outside boxplot whiskers '
         out = "Fail"
 
