@@ -22,7 +22,7 @@ def Main(srcfile, srctable, Directory=os.path.dirname(os.path.abspath(__file__))
       pass
     else:
       # Искомый файл в базе отсутствует, для проверки необходимо внести его в базу
-      dfall = pd.concat([dfall, get_file_df('test_M.WGS.report.html')]).drop_duplicates()
+      dfall = pd.concat([dfall, get_file_df(srcfile)]).drop_duplicates()
       dfall.to_csv('Maintable2.tsv', sep='\t')
 
     #Задаются датасеты для построения карт коррелляции
